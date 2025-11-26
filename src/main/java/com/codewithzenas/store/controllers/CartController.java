@@ -7,6 +7,8 @@ import com.codewithzenas.store.dtos.UpdateCartItemDto;
 import com.codewithzenas.store.exceptions.CartNotFoundException;
 import com.codewithzenas.store.exceptions.ProductNotFoundException;
 import com.codewithzenas.store.services.CartService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -70,7 +72,10 @@ public class CartController {
     }
 
     @DeleteMapping("/{cartId}/items")
-    public ResponseEntity<Void> clearCart(@PathVariable UUID cartId) {
+    @Operation(summary = "Clears all products from cart")
+    public ResponseEntity<Void> clearCart(
+            @Parameter(description = "The ID of the cart") @PathVariable UUID cartId) {
+
         cartService.clearCart(cartId);
 
         return ResponseEntity.noContent().build();
