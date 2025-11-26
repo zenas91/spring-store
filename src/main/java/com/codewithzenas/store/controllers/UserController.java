@@ -4,6 +4,7 @@ import com.codewithzenas.store.dtos.ChangePasswordDto;
 import com.codewithzenas.store.dtos.RegisterUserDto;
 import com.codewithzenas.store.dtos.UpdateUserDto;
 import com.codewithzenas.store.dtos.UserDto;
+import com.codewithzenas.store.entities.Role;
 import com.codewithzenas.store.mappers.UserMapper;
 import com.codewithzenas.store.repositories.UserRepository;
 import jakarta.validation.Valid;
@@ -59,6 +60,7 @@ public class UserController {
         }
         var user = userMapper.toUser(userRegDto);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole(Role.USER);
         userRepository.save(user);
         var userDto = userMapper.toUserDto(user);
         var uri = uriBuilder.path("/users/{id}").buildAndExpand(user.getId()).toUri();

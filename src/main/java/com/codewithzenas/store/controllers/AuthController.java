@@ -1,11 +1,14 @@
 package com.codewithzenas.store.controllers;
 
+import com.codewithzenas.store.config.JwtConfig;
 import com.codewithzenas.store.dtos.AuthDto;
 import com.codewithzenas.store.dtos.JwtResponseDto;
 import com.codewithzenas.store.dtos.UserDto;
 import com.codewithzenas.store.mappers.UserMapper;
 import com.codewithzenas.store.repositories.UserRepository;
 import com.codewithzenas.store.services.JwtService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,12 +27,14 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final JwtConfig  jwtConfig;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
     @PostMapping("/login")
     public ResponseEntity<JwtResponseDto> login(
-            @Valid @RequestBody AuthDto credentials) {
+            @Valid @RequestBody AuthDto credentials,
+            HttpServletResponse response) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         credentials.getEmail(),
@@ -38,14 +43,30 @@ public class AuthController {
         );
         var user = userRepository.findByEmail(credentials.getEmail()).orElseThrow();
 
-        var token = jwtService.generateToken(user);
-        return ResponseEntity.ok(new JwtResponseDto(token));
+        var accessToken = jwtService.generateAccessToken(user);
+        var refreshToken = jwtService.generateRefreshToken(user);
+
+        var cookie = new Cookie("refreshToken", refreshToken.toString());
+        cookie.setHttpOnly(true);
+        cookie.setPath("/auth/refresh");
+        cookie.setMaxAge(jwtConfig.getRefreshTokenExpiration());
+        cookie.setSecure(true);
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok(new JwtResponseDto(accessToken.toString()));
     }
 
-    @PostMapping("/validate")
-    public boolean validate(@RequestHeader("Authorization") String authHeader) {
-        var token = authHeader.replace("Bearer ", "");
-        return jwtService.validateToken(token);
+    @PostMapping("/refresh")
+    public ResponseEntity<JwtResponseDto> refresh(
+            @CookieValue(value = "refreshToken") String refreshToken) {
+        var jwt = jwtService.parseToken(refreshToken);
+        if (jwt == null || jwt.isExpired())
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        var user = userRepository.findById(jwt.getUserId()).orElseThrow();
+        var accessToken = jwtService.generateAccessToken(user);
+
+        return ResponseEntity.ok(new JwtResponseDto(accessToken.toString()));
     }
 
     @GetMapping("/me")
