@@ -1,9 +1,6 @@
 package com.codewithzenas.store.controllers;
 
-import com.codewithzenas.store.dtos.ChangePasswordDto;
-import com.codewithzenas.store.dtos.RegisterUserDto;
-import com.codewithzenas.store.dtos.UpdateUserDto;
-import com.codewithzenas.store.dtos.UserDto;
+import com.codewithzenas.store.dtos.*;
 import com.codewithzenas.store.entities.Role;
 import com.codewithzenas.store.mappers.UserMapper;
 import com.codewithzenas.store.repositories.UserRepository;
@@ -16,7 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -42,7 +38,6 @@ public class UserController {
     public ResponseEntity<UserDto> getUser(@PathVariable Long id) {
         var user = userRepository.findById(id).orElse(null);
         if (user == null) {
-            //new ResponseEntity<>(HttpStatus.NOT_FOUND);
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(userMapper.toUserDto(user));
@@ -55,7 +50,7 @@ public class UserController {
 
         if (userRepository.existsByEmail(userRegDto.getEmail())){
             return ResponseEntity.badRequest().body(
-                    Map.of("email", "Email is already registered")
+                    new ErrorDto("Email is already registered")
             );
         }
         var user = userMapper.toUser(userRegDto);
