@@ -1,5 +1,6 @@
 package com.codewithzenas.store.config;
 
+import com.codewithzenas.store.config.securityrules.SecurityRules;
 import com.codewithzenas.store.entities.Role;
 import com.codewithzenas.store.filters.JwtAuthenticationFilter;
 import lombok.AllArgsConstructor;
@@ -19,12 +20,15 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @AllArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final List<SecurityRules> featureSecurityRules;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -42,14 +46,10 @@ public class SecurityConfig {
             .sessionManagement(c ->
                 c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(c -> c
-                    .requestMatchers("/carts/**").permitAll()
-                    .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
-                    .requestMatchers(HttpMethod.POST, "/users").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/checkout/webhook").permitAll()
-                    .anyRequest().authenticated()
+            .authorizeHttpRequests(c -> {
+                    featureSecurityRules.forEach(r -> r.configure(c));
+                    c.anyRequest().authenticated();
+                }
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(c -> {

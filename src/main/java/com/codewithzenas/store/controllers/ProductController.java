@@ -1,6 +1,7 @@
 package com.codewithzenas.store.controllers;
 
 import com.codewithzenas.store.dtos.ProductDto;
+import com.codewithzenas.store.entities.Product;
 import com.codewithzenas.store.mappers.ProductMapper;
 import com.codewithzenas.store.repositories.CategoryRepository;
 import com.codewithzenas.store.repositories.ProductRepository;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -26,19 +28,16 @@ public class ProductController {
     @GetMapping
     public Iterable<ProductDto> getAllProducts(
             @RequestParam(required = false,
-            defaultValue = "", name = "sort") String sort,
-            @RequestParam(required = false,
                     defaultValue = "", name = "categoryId") Byte categoryId) {
-        if (!Set.of("name", "price").contains(sort))
-            sort = "name";
-        var productStream = productRepository.findAll(Sort.by(sort)).stream()
-                .map(productMapper::toProductDto);
-
-        if (categoryId == null)
-            return productStream.toList();
-        return productStream.filter(productDto ->
-                Objects.equals(productDto.getCategoryId(), categoryId)).toList();
+        List<Product> products;
+        if (categoryId != null) {
+            products = productRepository.findByCategoryId(categoryId);
+        } else {
+            products = productRepository.findAllWithCategory();
+        }
+        return products.stream().map(productMapper::toProductDto).toList();
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
         var product = productRepository.findById(id).orElse(null);
